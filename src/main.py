@@ -1,6 +1,7 @@
-import os
 import logging
+from os import path, environ, remove
 
+from yt_dlp import YoutubeDL
 from telegram import ForceReply, Update
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
@@ -30,12 +31,27 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
 
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     """Echo the user message."""
-    await update.message.reply_text(update.message.text)
+    #await update.message.reply_text(update.message.text)
+    ydl_opts = {
+    'format': 'm4a/bestaudio/best',
+    # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
+    'postprocessors': [{  # Extract audio using ffmpeg
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'm4a',
+    }]
+}
+    with YoutubeDL(ydl_opts) as ydl:
+        info = ydl.extract_info(update.message.text, download=False)
+        ydl.download(update.message.text)
+        xyz = path.join(f"/app/src/{info['title']} [{info['id']}].{info['ext']}")
+        await update.message.reply_audio(open(xyz, "rb"), title=info['title'])
+        remove(xyz)
+
+
 
 
 def main() -> None:
-    token: str = os.environ.get("TELEGRAM_TOKEN")
-    print(token)
+    token: str = environ.get("TELEGRAM_TOKEN")
 
     """Start the bot."""
     # Create the Application and pass it your bot's token.

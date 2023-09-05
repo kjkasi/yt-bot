@@ -1,3 +1,7 @@
 FROM python:3.11-alpine
-ENV TELEGRAM_TOKEN=""
-CMD ["sh", "-c", "python", TELEGRAM_TOKEN]
+ADD . /app
+WORKDIR /app
+RUN apk add ffmpeg
+RUN python -m pip install -r requirements.txt
+WORKDIR /app/src
+CMD ["python3", "main.py"]
