@@ -1,8 +1,8 @@
 import logging
-from os import path, environ, remove
+from os import path, environ, remove, listdir, stat
 
 from yt_dlp import YoutubeDL
-from telegram import ForceReply, Update
+from telegram import ForceReply, Update, constants
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
 
 # Enable logging
@@ -28,24 +28,28 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Send a message when the command /help is issued."""
     await update.message.reply_text("Help!")
 
-
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    """Echo the user message."""
-    #await update.message.reply_text(update.message.text)
     ydl_opts = {
-    'format': 'm4a/bestaudio/best',
-    # ℹ️ See help(yt_dlp.postprocessor) for a list of available Postprocessors and their arguments
-    'postprocessors': [{  # Extract audio using ffmpeg
-        'key': 'FFmpegExtractAudio',
-        'preferredcodec': 'm4a',
-    }]
-}
+        #'format': 'worstvideo[ext=mp4][height<=?1080]+worstaudio[ext=m4a]/worst',
+        "format": "worstaudio[ext=m4a]/worst",
+        "outtmpl": "/app/src/%(id)s.%(ext)s"
+    }
     with YoutubeDL(ydl_opts) as ydl:
         info = ydl.extract_info(update.message.text, download=False)
         ydl.download(update.message.text)
-        xyz = path.join(f"/app/src/{info['title']} [{info['id']}].{info['ext']}")
-        await update.message.reply_audio(open(xyz, "rb"), title=info['title'])
-        remove(xyz)
+        file = path.join(f"/app/src/{info['id']}.{info['ext']}")
+        #logger.info(listdir("/app/src/"))
+
+        file_size = stat(file).st_size
+        try:
+           if file_size >= constants.FileSizeLimit.FILESIZE_UPLOAD:
+               await update.message.reply_text(f"File {file} too large, size {file_size / (1024 * 1024)}")
+           else:                            
+               await update.message.reply_audio(open(file, "rb"), title=info['title'])
+        except Exception as e:
+            await update.message.reply_text(e.strerror)
+        finally:
+            remove(file)
 
 
 
