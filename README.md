@@ -1,6 +1,7 @@
 # yt-bot
 # on dev machine
 docker build --rm -t ytbot .
+docker run --rm --env TELEGRAM_TOKEN=ENTER_TOKEN ytbot
 docker tag ytbot kjkasi/ytbot
 docker push kjkasi/ytbot
 

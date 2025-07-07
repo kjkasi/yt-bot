@@ -28,28 +28,33 @@ async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> No
     """Send a message when the command /help is issued."""
     await update.message.reply_text("Help!")
 
+async def status_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Send a message when the command /help is issued."""
+    await update.message.reply_text("Help!")
+
 async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     ydl_opts = {
         #'format': 'worstvideo[ext=mp4][height<=?1080]+worstaudio[ext=m4a]/worst',
         "format": "worstaudio[ext=m4a]/worst",
-        "outtmpl": "/app/src/%(id)s.%(ext)s"
+        "outtmpl": "/app/src/%(id)s.%(ext)s",
+        'logger': logger,
     }
-    with YoutubeDL(ydl_opts) as ydl:
-        info = ydl.extract_info(update.message.text, download=False)
-        ydl.download(update.message.text)
-        file = path.join(f"/app/src/{info['id']}.{info['ext']}")
-        #logger.info(listdir("/app/src/"))
+    try:
+        with YoutubeDL(ydl_opts) as ydl:
+            info = ydl.extract_info(update.message.text, download=False)
+            ydl.download(update.message.text)
+            file = path.join(f"/app/src/{info['id']}.{info['ext']}")
+            #logger.info(listdir("/app/src/"))
 
-        file_size = stat(file).st_size
-        try:
-           if file_size >= constants.FileSizeLimit.FILESIZE_UPLOAD:
-               await update.message.reply_text(f"File {file} too large, size {file_size / (1024 * 1024)}")
-           else:                            
-               await update.message.reply_audio(open(file, "rb"), title=info['title'])
-        except Exception as e:
-            await update.message.reply_text(e.strerror)
-        finally:
-            remove(file)
+            file_size = stat(file).st_size
+            if file_size >= constants.FileSizeLimit.FILESIZE_UPLOAD:
+                await update.message.reply_text(f"File {file} too large, size {file_size / (1024 * 1024)}")
+            else:                            
+                await update.message.reply_audio(open(file, "rb"), title=info['title'])
+    except Exception as e:
+        await update.message.reply_text(e.strerror)
+    finally:
+        remove(file)
 
 
 
@@ -64,6 +69,9 @@ def main() -> None:
     # on different commands - answer in Telegram
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("help", help_command))
+    application.add_handler(CommandHandler("status", status_command))
+
+    
 
     # on non command i.e message - echo the message on Telegram
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
